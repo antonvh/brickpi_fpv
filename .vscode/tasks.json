@@ -1,0 +1,14 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        { 
+            "label": "Start RC script",
+            "type": "shell",
+            "command": "python3 ${workspaceFolder}/remote_control.py",
+            "presentation": {
+              "reveal": "always",
+              "panel": "new"
+            },
+        },
+    ],
+}
