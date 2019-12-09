@@ -41,7 +41,7 @@ Hardware used:
 2. Next, get sdl2 and gstreamer:
 
     ```shell
-    brew install sdl2 gstreamer gst-plugins-good
+    brew install sdl2 gstreamer gst-plugins-good gst-plugins-bad
     pip3 install pysdl2
     ```
 
@@ -66,4 +66,8 @@ On Mac Os X I run VSCode which has very nice launch target configurations. They 
 1. Open 'ev3dev device browser' at the very bottom left of your screen
 2. Right click your ev3dev device and choose connect or reconnect
 3. Open the command palette (cmd-shift-P or F1) and type 'select and start debugging' + enter
-4. Select 'Run server & client'
+4. Select 'Run server on ev3 and rc script'
+
+
+## Known issues ##
+This scripts are a collection of hacks. There is little error catching. Results might be unpredictable with different hardware. Some contributions to better error handling would be appreciated.

@@ -5,10 +5,17 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Python: Current File",
+			"name": "Python: Run Current File locally",
 			"type": "python",
 			"request": "launch",
 			"program": "${file}",
+			"console": "integratedTerminal"
+		},
+		{
+			"name": "Start remote control",
+			"type": "python",
+			"request": "launch",
+			"program": "${workspaceFolder}/remote_control.py",
 			"console": "integratedTerminal"
 		},
 		{
@@ -18,11 +25,16 @@
 			"program": "/home/robot/${workspaceRootFolderName}/${fileBasename}"
 		},
 		{
-			"name": "Run server and client",
+			"name": "Download and Run main.py",
 			"type": "ev3devBrowser",
 			"request": "launch",
-			"preLaunchTask": "Start RC script",
 			"program": "/home/robot/${workspaceRootFolderName}/main.py"
+		},
+	],
+	"compounds": [
+		{
+			"name": "Run server on ev3 and rc script",
+			"configurations" : ["Download and Run main.py", "Start remote control"]
 		}
 	]
 }
