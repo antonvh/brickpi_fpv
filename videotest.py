@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 __author__ = 'Antons Mindstorms Hacks'
 import shlex, subprocess, picamera, time
-from settings import STREAM_CMD, VIDEO_PORT, VIDEO_H, VIDEO_W, FRAME_RATE, BITRATE
+from settings import STREAM_CMD, VIDEO_PORT, VIDEO_H, VIDEO_W, FRAME_RATE, \
+    BITRATE, PC_HOST
 
 video_playing = True
-cmd = shlex.split(STREAM_CMD.format("192.168.188.22", VIDEO_PORT))
+cmd = shlex.split(STREAM_CMD.format(PC_HOST, VIDEO_PORT))
 streamer = subprocess.Popen(cmd, stdin=subprocess.PIPE)
 
 try:

@@ -21,9 +21,8 @@ except:
 import threading
 import subprocess
 
-
-################### Constants & inits ################
-from settings import DATA_PORT, VIDEO_PORT, RECV_BUFFER, BLUETOOTH, VIDEO, \
+# _______ Constants & inits ________ #
+from settings import DATA_PORT, VIDEO_PORT, RECV_BUFFER, VIDEO_ENABLED, \
     STICK_RANGE, STREAM_CMD, VIDEO_H, VIDEO_W, BITRATE, FRAME_RATE, \
     MOTOR_CMD_RATE
 
@@ -37,8 +36,8 @@ video_playing = True
 running = True
 gp_state = {}
 
-################# Helper functions ######################
 
+# _______ Cleaning and converting ________ #
 def clean_up():
     global running, video_playing, connection_list
     running = False  # Stop threads
@@ -90,6 +89,7 @@ class sendVideo(threading.Thread):
     def run(self):
         cmd = shlex.split(STREAM_CMD.format(self.ip_addr, VIDEO_PORT))
         streamer = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+        print("Streaming video to {} on port {}".format(self.ip_addr, VIDEO_PORT))
 
         try:
             with picamera.PiCamera() as camera:
@@ -128,6 +128,7 @@ class motorControl(threading.Thread):
                 motors["C"] = Motor(OUTPUT_C)
             if motor['port'] == "D":
                 motors["D"] = Motor(OUTPUT_D)
+            motors[motor['port']].position = 0
         motorloop = Throttler(MOTOR_CMD_RATE)
 
         while running:
@@ -186,60 +187,65 @@ class motorControl(threading.Thread):
 while True:
     try:
         # Get the list sockets which are ready to be read through select
-        if len(connection_list) > 0:
-            read_sockets, write_sockets, error_sockets = select.select(connection_list, [], [])
-            for sock in read_sockets:
+        read_sockets, write_sockets, error_sockets = select.select(connection_list, [], [])
+        for sock in read_sockets:
 
-                # New connection
-                if sock == server_socket:
-                    # Handle the case in which there is a new connection recieved through server_socket
-                    sockfd, addr = server_socket.accept()
-                    connection_list.append(sockfd)
+            # New connection
+            if sock == server_socket:
+                # Handle the case in which there is a new connection recieved through server_socket
+                sockfd, addr = server_socket.accept()
+                connection_list.append(sockfd)
 
 
-                # Some incoming message from a connected client
-                else:
-                    # Data recieved from client, process it
-                    try:
-                        # In Windows, sometimes when a TCP program closes abruptly,
-                        # a "Connection reset by peer" exception will be thrown
+            # Some incoming message from a connected client
+            else:
+                # Data recieved from client, process it
+                try:
+                    # In Windows, sometimes when a TCP program closes abruptly,
+                    # a "Connection reset by peer" exception will be thrown
+ 
+                    data = sock.recv(RECV_BUFFER)
+                    rcvd_dict = pickle.loads(data)
+                    answer = "OK"
 
-                        answer = ["Robot says:"]
-                        send_data = pickle.dumps(answer)
-                        data = sock.recv(RECV_BUFFER)
-                        sock.send(send_data)
-                        rcvd_dict = pickle.loads(data)
+                    if 'ip_addr' in rcvd_dict:
+                        # We have a destination for our video stream. setup and start the thread
+                        if VIDEO_ENABLED:
+                            video_playing = True
+                            video_thread = sendVideo(rcvd_dict['ip_addr'])
+                            video_thread.setDaemon(True)
+                            video_thread.start()
+                            answer = "Sending video to {}".format(rcvd_dict['ip_addr'])
 
-                        if 'ip_addr' in rcvd_dict:
-                            # We have a destination for our video stream. setup and start the thread
-                            if VIDEO:
-                                video_playing = True
-                                video_thread = sendVideo(rcvd_dict['ip_addr'])
-                                video_thread.setDaemon(True)
-                                video_thread.start()
+                    if 'robot_config' in rcvd_dict:
+                        # We have a robot definition! Setup and start the motor thread
+                        robot_config = rcvd_dict['robot_config']
+                        motor_thread = motorControl()
+                        motor_thread.setDaemon(True)
+                        motor_thread.start()
+                        answer = "Motor thread started with robot condig"
 
-                        if 'robot_config' in rcvd_dict:
-                            # We have a robot definition! Setup and start the motor thread
-                            robot_config = rcvd_dict['robot_config']
-                            motor_thread = motorControl()
-                            motor_thread.setDaemon(True)
-                            motor_thread.start()
+                    else:
+                        gp_state = rcvd_dict
+                        answer = "Right stick horizontal = {}".format(gp_state['right_h'])
+                        # if gp_state['btn_Y']:
+                        #     sock.close()
+                        #     connection_list.remove(sock)
+                        #     clean_up()
+                        #     break
+                        #     # acknowledge
+                    
+                    
+                    send_data = pickle.dumps(answer)
+                    sock.send(send_data)
 
-                        else:
-                            gp_state = rcvd_dict
-                            if gp_state['btn_Y']:
-                                sock.close()
-                                connection_list.remove(sock)
-                                clean_up()
-                                break
-                                # acknowledge
-
-                    # Client disconnected, so remove it from socket list
-                    except:
-                        sock.close()
-                        connection_list.remove(sock)
-                        clean_up()
-                        break
+                # Client disconnected, so remove it from socket list
+                except:
+                    sock.close()
+                    connection_list.remove(sock)
+                    clean_up()
+                    break
+                    raise
 
 
 
