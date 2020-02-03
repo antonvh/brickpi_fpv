@@ -164,7 +164,7 @@ class motorControl(threading.Thread):
                         #     err += co_position * motor['co_rotate_pos'] + co_rotation_speed * motor[
                         #         'co_rotate_speed']  # offset motor target with this number to make it move along
 
-                        pwr = clamp(err * -2, (-100, 100))
+                        pwr = clamp(err * -1.5, (-100, 100))
                         motors[motor['port']].run_direct(duty_cycle_sp=pwr)
 
                     if motor['type'] == 'dc':
@@ -227,14 +227,14 @@ while True:
 
                     else:
                         gp_state = rcvd_dict
-                        answer = "Right stick horizontal = {}".format(gp_state['right_h'])
+                        answer = "OK"
+                        # answer = "Right stick horizontal = {}".format(gp_state['right_h'])
                         # if gp_state['btn_Y']:
                         #     sock.close()
                         #     connection_list.remove(sock)
                         #     clean_up()
                         #     break
                         #     # acknowledge
-                    
                     
                     send_data = pickle.dumps(answer)
                     sock.send(send_data)
